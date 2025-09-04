@@ -33,10 +33,8 @@ class Preprocessing:
             if drop:
                 self.df = self.df[(self.df[col] >= lower) & (self.df[col] <= upper)]
             else:
-                self.df[col] = np.where(
-                    self.df[col] < lower, lower,
-                    np.where(self.df[col] > upper, upper, self.df[col])
-                )
+                self.df[col] = self.df[col].clip(lower, upper)
+
         return self.df
 
     def change_time_to_hours(self, col):
