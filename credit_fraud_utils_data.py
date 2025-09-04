@@ -1,37 +1,15 @@
-"""
-
-loading data
-processing:
-    - remove dublicates 
-    - remove outliers
-    - transform time to hours -> /60/60
-    - preprocessing (standarscaling, minmax sacling)
-
-    - under sampling (zeros)
-    - over sampling (ones) -> random, smote
-    - over sampling + under sampling
-
-    - Cost-Sensitive Learning, change weights for two classes
-"""
 import pandas as pd
 from numpy import where
+import numpy as np
 from utils.helper_fun import load_df, load_x_t, split_data
 from sklearn.preprocessing import StandardScaler, MinMaxScaler, Normalizer
 from collections import Counter
 from imblearn.under_sampling import RandomUnderSampler
 from imblearn.over_sampling import SMOTE, RandomOverSampler 
+from imblearn.pipeline import Pipeline
 
 RANDOM_STATE=42
 
-import pandas as pd
-import numpy as np
-from collections import Counter
-from sklearn.preprocessing import StandardScaler, MinMaxScaler, Normalizer
-from imblearn.under_sampling import RandomUnderSampler
-from imblearn.over_sampling import SMOTE, RandomOverSampler
-from imblearn.pipeline import Pipeline
-
-RANDOM_STATE = 42
 
 class Preprocessing:
     def __init__(self, df: pd.DataFrame):
@@ -64,20 +42,6 @@ class Preprocessing:
     def change_time_to_hours(self, col):
         self.df[col] = self.df[col] / 3600.0  
         return self.df
-
-    def scaling(self, option=1):
-        if option == 1:
-            scaler = MinMaxScaler()
-        elif option == 2:
-            scaler = StandardScaler()
-        elif option == 3:
-            scaler = Normalizer()
-        else:
-            return None
-        cols = self.df.columns[:-1]
-        
-        df[cols] = scaler.fit_transform(df[cols])
-        return scaler, self.df
 
 
 class Sampling():
@@ -126,17 +90,27 @@ class Sampling():
         pip = Pipeline(steps=[('over', os), ('under', rus)])
         uox, uot = pip.fit_resample(self.x, self.t)
         return uox, uot
-
-
-
     
 
 class Processing_Pipeline():
-    def __init__(self):
-        pass
+    def __init__(self, path):
+        self.path=path
 
-    def apply_preprocessing(self,path, scaling_option=1, scaler=True, val=False, remove_dublicate=True, remove_outlier=True, change_time=True):
-        df = load_df(path)
+    def scaling(self, x, option=1):
+        if option == 1:
+            scaler = MinMaxScaler()
+        elif option == 2:
+            scaler = StandardScaler()
+        elif option == 3:
+            scaler = Normalizer()
+        else:
+            return None
+        
+        x = scaler.fit_transform(x)
+        return scaler, x
+
+    def apply_preprocessing(self, remove_dublicate=True, remove_outlier=True, change_time=True):
+        df = load_df(self.path)
         preprocessing = Preprocessing(df)
         if remove_dublicate:
             df=preprocessing.remove_duplicates()
@@ -147,19 +121,25 @@ class Processing_Pipeline():
 
         return df
 
-    def apply_sampling(self,sample_option=1, under_factor=20, over_factor=20, over_strategy='smote'):
-        df = self.apply_preprocessing()
-        x,t = load_x_t(df)
-        sampling = Sampling()
+    def apply_sampling(self, df:pd.DataFrame, sample_option=1, under_factor=20, over_factor=20, over_strategy='smote'):
+        _,x,t = load_x_t(df)
+        sampling = Sampling(x,t)
         
-        if sample==1:
+        if sample_option==1:
             x,t = sampling.under_sampling(under_factor)
-        elif sample==2:
+        elif sample_option==2:
             x,t = sampling.over_sample(over_factor)
         else:
             x,t = sampling.under_over_sample(under_factor, over_factor,over_strategy)
+        return df, x,t
 
-
-
-
+    def apply_scaling(self,df:pd.DataFrame, x:pd.DataFrame, t:pd.Series, scaling_option=1, train_val=True, split_sz=0.2):
+        if train_val:
+            x_trian,x_val,t_train,t_val = split_data(x,t,split_sz)
+            scaler, x_trian_transformed = self.scaling(x_trian, scaling_option)
+            x_val_transformed = scaler.transform(x_val)
+            return x_trian_transformed, x_val_transformed, t_train, t_val
+        else:
+            _,x_tranformed = self.scaling(x,scaling_option)
+            return x_tranformed
 
