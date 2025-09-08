@@ -2,3 +2,6 @@
 *.venv
 *.csv
 *.zip
+tcl/
+tcl*/ 
+*.tcl
