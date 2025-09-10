@@ -20,7 +20,7 @@ def load_x_t(df:pd.DataFrame):
     return df, x,y
 
 def split_data(x,t, split_sz=0.2):
-    x_train, x_val, t_train, t_val = train_test_split(x,t, test_size=split_sz, random_state=RANDOM_STATE)
+    x_train, x_val, t_train, t_val = train_test_split(x,t, test_size=split_sz, random_state=RANDOM_STATE, stratify=t)
     return x_train, x_val, t_train, t_val
 
 def visualize_pr(precision, recall, threshall, versus_threshall=True):

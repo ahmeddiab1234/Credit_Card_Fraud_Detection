@@ -12,34 +12,34 @@ RANDOM_STATE=42
 
 
 class Preprocessing:
-    def __init__(self, x: pd.DataFrame):
-        self.x=x
+    def __init__(self, df: pd.DataFrame):
+        self.df=df
 
     def remove_duplicates(self, drop=True):
         if drop:
-            self.x.drop_duplicates(inplace=True)
-        return self.x
+            self.df.drop_duplicates(inplace=True)
+        return self.df
 
     def handle_outliers(self, drop=True):
-        cols = self.x.columns
+        cols = self.df.columns[:-1]
         for col in cols:
-            q1 = self.x[col].quantile(0.25)
-            q3 = self.x[col].quantile(0.75)
+            q1 = self.df[col].quantile(0.25)
+            q3 = self.df[col].quantile(0.75)
             iqr = q3 - q1
 
             lower = q1 - (1.5 * iqr)
             upper = q3 + (1.5 * iqr)
 
             if drop:
-                self.x = self.x[(self.x[col] >= lower) & (self.x[col] <= upper)]
+                self.df = self.df[(self.df[col] >= lower) & (self.df[col] <= upper)]
             else:
-                self.x[col] = self.x[col].clip(lower, upper)
+                self.df[col] = self.df[col].clip(lower, upper)
 
-        return self.x
+        return self.df
 
     def change_time_to_hours(self, col):
-        self.x[col] = self.x[col] / 3600.0  
-        return self.x
+        self.df[col] = self.df[col] / 3600.0  
+        return self.df
 
 
 class Sampling():
@@ -107,16 +107,16 @@ class Processing_Pipeline():
         x = scaler.fit_transform(x)
         return scaler, x
 
-    def apply_preprocessing(self, x:pd.DataFrame, remove_dublicate=True, remove_outlier=True, change_time=True):
-        preprocessing = Preprocessing(x)
+    def apply_preprocessing(self, df:pd.DataFrame, remove_dublicate=True, remove_outlier=True, change_time=True):
+        preprocessing = Preprocessing(df)
         if remove_dublicate:
-            x=preprocessing.remove_duplicates()
+            df=preprocessing.remove_duplicates()
         if remove_outlier:
-            x = preprocessing.handle_outliers(True)
+            df = preprocessing.handle_outliers(True)
         if change_time:
-            x = preprocessing.change_time_to_hours('Time')
+            df = preprocessing.change_time_to_hours('Time')
 
-        return x
+        return df
 
     def apply_sampling(self, x,t, sample_option=1, under_factor=20, over_factor=20, over_strategy='smote'):
         sampling = Sampling(x,t)
