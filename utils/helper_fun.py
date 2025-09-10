@@ -16,7 +16,7 @@ def load_df(path):
     return df
     
 def load_x_t(df:pd.DataFrame):
-    x,y = x,t = df.iloc[:,:-1], df.iloc[:,-1]
+    x,y = df.iloc[:,:-1], df.iloc[:,-1]
     return df, x,y
 
 def split_data(x,t, split_sz=0.2):

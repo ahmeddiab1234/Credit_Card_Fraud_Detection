@@ -12,34 +12,34 @@ RANDOM_STATE=42
 
 
 class Preprocessing:
-    def __init__(self, df: pd.DataFrame):
-        self.df=df
+    def __init__(self, x: pd.DataFrame):
+        self.x=x
 
     def remove_duplicates(self, drop=True):
         if drop:
-            self.df.drop_duplicates(inplace=True)
-        return self.df
+            self.x.drop_duplicates(inplace=True)
+        return self.x
 
     def handle_outliers(self, drop=True):
-        cols = self.df.columns[:-1]
+        cols = self.x.columns
         for col in cols:
-            q1 = self.df[col].quantile(0.25)
-            q3 = self.df[col].quantile(0.75)
+            q1 = self.x[col].quantile(0.25)
+            q3 = self.x[col].quantile(0.75)
             iqr = q3 - q1
 
             lower = q1 - (1.5 * iqr)
             upper = q3 + (1.5 * iqr)
 
             if drop:
-                self.df = self.df[(self.df[col] >= lower) & (self.df[col] <= upper)]
+                self.x = self.x[(self.x[col] >= lower) & (self.x[col] <= upper)]
             else:
-                self.df[col] = self.df[col].clip(lower, upper)
+                self.x[col] = self.x[col].clip(lower, upper)
 
-        return self.df
+        return self.x
 
     def change_time_to_hours(self, col):
-        self.df[col] = self.df[col] / 3600.0  
-        return self.df
+        self.x[col] = self.x[col] / 3600.0  
+        return self.x
 
 
 class Sampling():
@@ -91,8 +91,8 @@ class Sampling():
     
 
 class Processing_Pipeline():
-    def __init__(self, path):
-        self.path=path
+    def __init__(self):
+        pass
 
     def scaling(self, x, option=1):
         if option == 1:
@@ -107,20 +107,18 @@ class Processing_Pipeline():
         x = scaler.fit_transform(x)
         return scaler, x
 
-    def apply_preprocessing(self, remove_dublicate=True, remove_outlier=True, change_time=True):
-        df = load_df(self.path)
-        preprocessing = Preprocessing(df)
+    def apply_preprocessing(self, x:pd.DataFrame, remove_dublicate=True, remove_outlier=True, change_time=True):
+        preprocessing = Preprocessing(x)
         if remove_dublicate:
-            df=preprocessing.remove_duplicates()
+            x=preprocessing.remove_duplicates()
         if remove_outlier:
-            df = preprocessing.handle_outliers(True)
+            x = preprocessing.handle_outliers(True)
         if change_time:
-            df = preprocessing.change_time_to_hours('Time')
+            x = preprocessing.change_time_to_hours('Time')
 
-        return df
+        return x
 
-    def apply_sampling(self, df:pd.DataFrame, sample_option=1, under_factor=20, over_factor=20, over_strategy='smote'):
-        _,x,t = load_x_t(df)
+    def apply_sampling(self, x,t, sample_option=1, under_factor=20, over_factor=20, over_strategy='smote'):
         sampling = Sampling(x,t)
         
         if sample_option==1:
@@ -129,15 +127,14 @@ class Processing_Pipeline():
             x,t = sampling.over_sample(over_factor)
         else:
             x,t = sampling.under_over_sample(under_factor, over_factor,over_strategy)
-        return df, x,t
+        return x,t
 
-    def apply_scaling(self,df:pd.DataFrame, x:pd.DataFrame, t:pd.Series, scaling_option=1, train_val=True, split_sz=0.2):
+    def apply_scaling(self, x_train:pd.DataFrame, t_train:pd.Series, x_val=None, t_val=None, scaling_option=1, train_val=True):
         if train_val:
-            x_trian,x_val,t_train,t_val = split_data(x,t,split_sz)
-            scaler, x_trian_transformed = self.scaling(x_trian, scaling_option)
+            scaler, x_trian_transformed = self.scaling(x_train, scaling_option)
             x_val_transformed = scaler.transform(x_val)
-            return x_trian_transformed, x_val_transformed, t_train, t_val
+            return x_trian_transformed, t_train, x_val_transformed, t_val
         else:
-            _,x_tranformed = self.scaling(x,scaling_option)
-            return x_tranformed
+            _,x_tranformed = self.scaling(x_train,scaling_option)
+            return x_tranformed, t_train
 
