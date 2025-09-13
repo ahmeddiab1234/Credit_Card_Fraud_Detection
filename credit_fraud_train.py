@@ -31,7 +31,8 @@ RANDOM_STATE = 42
 TRAIN_PATH = 'data/split/train.csv'
 VAL_PATH = 'data/split/val.csv'
 TRAIN_VAL_PATH = 'data/split/trainval.csv'
-ZERO_CLASS_WEIGHT = 0.8 # 0.9, 1
+# ZERO_CLASS_WEIGHT = 0.8 # 0.9, 1
+ZERO_CLASS_WEIGHT = 1 # 0.9, 1
 ONE_CLASS_WEIGHT = 1
 
 
@@ -90,7 +91,7 @@ class Train():
         
         return t_pred, t_pred_prob
 
-    def voting_classifier(self):
+    def voting_classifier(self, solver='sag', fit_intercept=True, max_iter=10000, max_depth=5,n_estimators=25):
         log_reg = LogisticRegression(solver='sag', fit_intercept=True, max_iter=10000, class_weight={0:ZERO_CLASS_WEIGHT, 1:ONE_CLASS_WEIGHT})
         ran_for = RandomForestClassifier(max_depth=5, n_estimators=25, class_weight={0:ZERO_CLASS_WEIGHT, 1:ONE_CLASS_WEIGHT})
         voting = VotingClassifier(
@@ -102,7 +103,7 @@ class Train():
         # t_pred_prob = voting.predict_proba(self.x_val)
         return t_pred, None
     
-    def xgboost(self, max_depth=5, n_estimators=100, lr=0.001):
+    def xgboost(self, max_depth=5, n_estimators=100, lr=0.01):
         model = XGBClassifier(n_estimators=n_estimators, max_depth=max_depth, learning_rate=lr, 
                 random_state=RANDOM_STATE, class_weight={0:ZERO_CLASS_WEIGHT, 1:ONE_CLASS_WEIGHT})
         model.fit(self.x_train, self.t_train)
@@ -110,7 +111,7 @@ class Train():
         t_pred_prob = model.predict_proba(self.x_val)
         return t_pred, t_pred_prob
     
-    def light_boast(self, n_estimators=100, lr=0.001, max_depth=-1):
+    def light_boast(self, n_estimators=100, lr=0.1, max_depth=-1):
         model = LGBMClassifier(n_estimators=n_estimators, max_depth=max_depth, 
                 learning_rate=lr, random_state=RANDOM_STATE, class_weight={0:ZERO_CLASS_WEIGHT, 1:ONE_CLASS_WEIGHT})
         model.fit(self.x_train, self.t_train)
@@ -118,8 +119,8 @@ class Train():
         t_pred_prob = model.predict_proba(self.x_val)
         return t_pred, t_pred_prob
     
-    def cat_boast(self, iterations=100, depth=5, lr=0.001):
-        model = LGBMClassifier(iterations=iterations, depth=depth, 
+    def cat_boast(self, iterations=100, depth=5, lr=0.1):
+        model = CatBoostClassifier(iterations=iterations, depth=depth, 
                 learning_rate=lr, random_state=RANDOM_STATE, class_weight={0:ZERO_CLASS_WEIGHT, 1:ONE_CLASS_WEIGHT})
         model.fit(self.x_train, self.t_train)
         t_pred = model.predict(self.x_val)
@@ -161,13 +162,41 @@ if __name__=='__main__':
     # print(Counter(t_train))
     # print(Counter(t_val))
 
-    train = Train(x_train, t_train, x_val, t_val)
-    t_pred, t_pred_prob = train.voting_classifier()
+    # cnt = 2
+    
+    for depth in [3,5,10]:
+        # for iteration: 
+            train = Train(x_train, t_train, x_val, t_val)
+            t_pred, t_pred_prob = train.cat_boast(depth=depth)
 
-    eval = Eval(t_val, t_pred, t_pred_prob)
-    print(eval.report_())
-    # print(eval.eval_metrices_())
+            eval = Eval(t_val, t_pred, t_pred_prob)
+            print(f'depth {depth}')
+            print(eval.report_())
+            # print(eval.eval_metrices_())
 
     pass
 
 
+
+"""
+data as it is :
+    logistic regression:
+        solver: sag, fit-intercept=True, max-iterations=10000
+        f1-score=88%
+
+    random forest:
+        max-depth,n-estimators : {[9,100],[9,50], [9,20], [6,50], [6,20], [5,100]}
+        f1-score=88%
+
+    xgboost:
+        max-depth: 3, lr=0.2, n-estimator:100
+        f1-score=77%
+    
+    light-boost:
+        n-estimator:500, lr=0.05, max-depth:3
+        f1-score: 79%
+
+    cat-boost:
+        depth: 
+
+"""
