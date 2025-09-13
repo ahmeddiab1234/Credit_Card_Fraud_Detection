@@ -14,9 +14,7 @@ pkl file
     - model name
 
 """
-import sys
-import os
-import pickle 
+
 
 from utils.helper_fun import *
 from credit_fraud_utils_data import Processing_Pipeline
@@ -155,116 +153,21 @@ class Eval():
 
 if __name__=='__main__':
     prep = Prepare()
-    # print(x_train.shape) # (17648, 30)
-    # print(t_train.shape) # (17648,)
-    # print(x_val.shape) # (4412, 30)
-    # print(t_val.shape) # (4412,)
-    # print(Counter(t_train))
-    # print(Counter(t_val))
-
 
     x_train, t_train, x_val, t_val = prep.prepare_data(2, True, 1, 2, 80, 80, 'smote')
 
-    model = Train(x_train, t_train, x_val, t_val)
-    t_pred, t_pred_prob = model.random_forest(9,50)
+    train = Train(x_train, t_train, x_val, t_val)
+    t_pred, t_pred_prob = train.random_forest(9,50)
 
     eval = Eval(t_val, t_pred, t_pred_prob)
-    print(f'{Counter(t_val)}')
-    # print(eval.report_())
+    print(eval.report_())
 
     precision,recall,threshold = eval.calc_pc_()
     b_thr, prc, rec = eval.best_threshall(precision, recall, threshold, 'recall', None, 0.89) 
     print(b_thr, prc, rec)
-    # save_model(model, b_thr, 'Random_Forest')
-    # visualize_pr(precision, recall, threshold)
+
+    model = RandomForestClassifier(n_estimators=50, max_depth=9)
+    model.fit(x_train, t_train)
+    save_model(model, b_thr, 'Random_Forest')
     
 
-
-"""
-data as it is : 
-    logistic regression:
-        solver: sag, fit-intercept=True, max-iterations=10000
-        f1-score=88%
-
-    random forest:
-        max-depth,n-estimators : {[9,100],[9,50], [9,20], [6,50], [6,20], [5,100]}
-        f1-score=88%
-
-    xgboost:
-        max-depth: 3, lr=0.2, n-estimator:100
-        f1-score=77%
-    
-    light-boost:
-        n-estimator:500, lr=0.05, max-depth:3
-        f1-score: 79%
-
-    cat-boost:
-        depth: 3, iterations: 100, lr=0.1
-        f1-score: 88%
-------------------------------------------------------------------------------------------------
-Over sampling Minority:
-    Logistic-regression: 
-        over-factor:80
-        f1-score: 89%
-
-    random-forest:
-        over-factor:80
-        f1-score:89%
-
-    xgboost:
-        over-factor:80
-        f1-score:88%
-
-    light-boost:
-        over-factor:80
-        f1-score:85%
-
-    cat-boost:
-        over-factor:80
-        f1-score:80%
-------------------------------------------------------------------------------------------------
-
-Under sampling Majority:
-    Logistic-regression: 
-        over-factor:5
-        f1-score: 80%
-
-    random-forest:
-        over-factor:80
-        f1-score:88
-    
-    xgboost:
-        over-factor:40
-        f1-score:88%
-
-    light-boost:
-        over-factor:100
-        f1-score:84%
-
-    cat-boost:
-        over-factor:40
-        f1-score:80%
-------------------------------------------------------------------------------------------------
-Under sampling Majority:
-    Logistic-regression: 
-        over-factor:5, under-factor:5
-        f1-score: 89%
-
-    random-forest:
-        over-factor:10, under-factor:10
-        f1-score:89%
-
-    xgboost:
-        over-factor:5, under-factor: 5
-        f1-score:89%
-
-    light-boost:
-        over-factor:20, under-factor:20
-        f1-score:83%
-
-    cat-boost:
-        over-factor:10, under-factor:10
-        f1-score:89%
-
-
-"""
