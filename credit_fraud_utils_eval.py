@@ -30,12 +30,12 @@ class Metrices:
         if target=='precision':
             best_thres_idx = np.argmax(precision>=target_precision)
             best_thres = threshall[best_thres_idx]
-            return best_thres, target_precision, recall[best_thres]
+            return best_thres, target_precision, recall[best_thres_idx]
 
         else:
             best_thres_idx = np.argmin(recall>=target_recall)
-            best_thres = threshall[best_thres]
-            return best_thres, precision[best_thres], target_recall
+            best_thres = threshall[best_thres_idx]
+            return best_thres, precision[best_thres_idx], target_recall
         
     def visualize_pr_(slef, precision, recall, threshall, versus_threshall=True):
         visualize_pr(precision, recall, threshall, versus_threshall)

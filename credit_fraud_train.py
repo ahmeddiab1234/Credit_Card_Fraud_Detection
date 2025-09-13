@@ -14,6 +14,9 @@ pkl file
     - model name
 
 """
+import sys
+import os
+import pickle 
 
 from utils.helper_fun import *
 from credit_fraud_utils_data import Processing_Pipeline
@@ -168,10 +171,15 @@ if __name__=='__main__':
     eval = Eval(t_val, t_pred, t_pred_prob)
     print(f'{Counter(t_val)}')
     print(eval.report_())
-    prc,rec,thr = eval.calc_pc_()
+    precision,recall,threshold = eval.calc_pc_()
     # print(f'Precision {len(prc)}')
     # print(f'Recall {len(rec)}')
-    print(f'length Threshaled {len(thr)}')
+    # print(f'length Threshold {len(thr)}')
+    b_thr, prc, rec = eval.best_threshall(precision, recall, threshold, 'recall', None, 0.85) # 0.030375007558363296 0.6521739130434783 0.85
+    # b_thr, prc, rec = eval.best_threshall(precision, recall, threshold, 'recall', None, 0.80) # 0.4399483624518632 1.0 0.8
+    print(b_thr, prc, rec)
+
+    
 
 
 """

@@ -1,6 +1,10 @@
 
 from sklearn.model_selection import train_test_split
 import pandas as pd
+import os
+import sys
+import pickle
+
 import matplotlib
 matplotlib.use("Qt5Agg") 
 
@@ -35,7 +39,16 @@ def visualize_pr(precision, recall, threshall, versus_threshall=True):
             plt.ylabel('Recall')
         plt.show()
 
+def save_model(model, threshold, model_save_name):
+    model_dict = {
+        "model": model,
+        "threshold": threshold,
+        "model_name": model_save_name
+    }
+    root_dir = os.getcwd()
 
+    with open(os.path.join(root_dir, 'model.pkl'), 'wb') as file:
+        pickle.dump(model_dict, file)
 
 if __name__=='__main__':
     df= load_df('data/split/train.csv')
