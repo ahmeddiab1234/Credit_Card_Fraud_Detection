@@ -79,7 +79,7 @@ class Train():
         model = LogisticRegression(solver=solver, fit_intercept=fit_intercept, max_iter=max_iter, class_weight={0:ZERO_CLASS_WEIGHT, 1:ONE_CLASS_WEIGHT})
         model.fit(self.x_train, self.t_train)
         t_pred = model.predict(self.x_val)
-        t_pred_prob = model.predict_proba(self.x_val)
+        t_pred_prob = model.predict_proba(self.x_val)[:,1]
 
         return t_pred, t_pred_prob
 
@@ -87,20 +87,19 @@ class Train():
         model = RandomForestClassifier(max_depth=max_depth, n_estimators=n_estimators, class_weight={0:ZERO_CLASS_WEIGHT, 1:ONE_CLASS_WEIGHT})
         model.fit(self.x_train, self.t_train)
         t_pred = model.predict(self.x_val)
-        t_pred_prob = model.predict_proba(self.x_val)
+        t_pred_prob = model.predict_proba(self.x_val)[:,1]
         
         return t_pred, t_pred_prob
 
     def voting_classifier(self, solver='sag', fit_intercept=True, max_iter=10000, max_depth=5,n_estimators=25):
-        log_reg = LogisticRegression(solver='sag', fit_intercept=True, max_iter=10000, class_weight={0:ZERO_CLASS_WEIGHT, 1:ONE_CLASS_WEIGHT})
-        ran_for = RandomForestClassifier(max_depth=5, n_estimators=25, class_weight={0:ZERO_CLASS_WEIGHT, 1:ONE_CLASS_WEIGHT})
+        log_reg = LogisticRegression(solver=solver, fit_intercept=fit_intercept, max_iter=max_iter, class_weight={0:ZERO_CLASS_WEIGHT, 1:ONE_CLASS_WEIGHT})
+        ran_for = RandomForestClassifier(max_depth=max_depth, n_estimators=n_estimators, class_weight={0:ZERO_CLASS_WEIGHT, 1:ONE_CLASS_WEIGHT})
         voting = VotingClassifier(
             estimators=[('lr',log_reg), ('ran', ran_for)],
             voting='hard'
         )
         voting.fit(self.x_train, self.t_train)
         t_pred = voting.predict(self.x_val)
-        # t_pred_prob = voting.predict_proba(self.x_val)
         return t_pred, None
     
     def xgboost(self, max_depth=5, n_estimators=100, lr=0.01):
@@ -108,7 +107,7 @@ class Train():
                 random_state=RANDOM_STATE, class_weight={0:ZERO_CLASS_WEIGHT, 1:ONE_CLASS_WEIGHT})
         model.fit(self.x_train, self.t_train)
         t_pred = model.predict(self.x_val)
-        t_pred_prob = model.predict_proba(self.x_val)
+        t_pred_prob = model.predict_proba(self.x_val)[:,1]
         return t_pred, t_pred_prob
     
     def light_boast(self, n_estimators=100, lr=0.1, max_depth=-1):
@@ -116,14 +115,14 @@ class Train():
                 learning_rate=lr, random_state=RANDOM_STATE, class_weight={0:ZERO_CLASS_WEIGHT, 1:ONE_CLASS_WEIGHT})
         model.fit(self.x_train, self.t_train)
         t_pred = model.predict(self.x_val)
-        t_pred_prob = model.predict_proba(self.x_val)
+        t_pred_prob = model.predict_proba(self.x_val)[:,1]
         return t_pred, t_pred_prob
     
     def cat_boast(self, iterations=100, depth=5, lr=0.1):
         model = CatBoostClassifier(iterations=iterations, depth=depth, learning_rate=lr, random_state=RANDOM_STATE, class_weights={0:ZERO_CLASS_WEIGHT, 1:ONE_CLASS_WEIGHT})
         model.fit(self.x_train, self.t_train)
         t_pred = model.predict(self.x_val)
-        t_pred_prob = model.predict_proba(self.x_val)
+        t_pred_prob = model.predict_proba(self.x_val)[:,1]
         return t_pred, t_pred_prob
 
 
@@ -160,27 +159,23 @@ if __name__=='__main__':
     # print(Counter(t_train))
     # print(Counter(t_val))
 
-    # cnt = 2
-    
-    for ov_fac,un_fac in zip([5, 40, 80, 100],[5, 40, 80, 100]):
-        x_train, t_train, x_val, t_val = prep.prepare_data(2, True, 1, 3, ov_fac, un_fac, 'smote')
 
-        train = Train(x_train, t_train, x_val, t_val)
-        # t_pred, t_pred_prob = train.logistic_regression('sag', True, 10000)
-        # t_pred, t_pred_prob = train.random_forest(9, 50)
-        # t_pred, t_pred_prob = train.xgboost(3, 100, 0.2)
-        t_pred, t_pred_prob = train.light_boast(500, 0.05, 3)
-        # t_pred, t_pred_prob = train.cat_boast(100, 3, 0.1)
+    x_train, t_train, x_val, t_val = prep.prepare_data(2, True, 1, 2, 80, 80, 'smote')
 
-        eval = Eval(t_val, t_pred, t_pred_prob)
-        print(f'Oversample factor {ov_fac}, Undersample factor {un_fac}')
-        print(f'0:{Counter(t_val)}')
-        print(eval.report_())
-        # print(eval.eval_metrices_())
+    train = Train(x_train, t_train, x_val, t_val)
+    t_pred, t_pred_prob = train.random_forest(9,50)
+
+    eval = Eval(t_val, t_pred, t_pred_prob)
+    print(f'{Counter(t_val)}')
+    print(eval.report_())
+    prc,rec,thr = eval.calc_pc_()
+    # print(f'Precision {len(prc)}')
+    # print(f'Recall {len(rec)}')
+    print(f'length Threshaled {len(thr)}')
 
 
 """
-data as it is :
+data as it is : 
     logistic regression:
         solver: sag, fit-intercept=True, max-iterations=10000
         f1-score=88%
@@ -247,23 +242,23 @@ Under sampling Majority:
 Under sampling Majority:
     Logistic-regression: 
         over-factor:5, under-factor:5
-        f1-score: 94%
+        f1-score: 89%
 
     random-forest:
-        over-factor:100, under-factor:100
-        f1-score:90%
+        over-factor:10, under-factor:10
+        f1-score:89%
 
     xgboost:
-        over-factor:80, under-factor: 80
-        f1-score:90%
+        over-factor:5, under-factor: 5
+        f1-score:89%
 
     light-boost:
-        over-factor:80, under-factor:80
-        f1-score:84%
+        over-factor:20, under-factor:20
+        f1-score:83%
 
     cat-boost:
-        over-factor:5, under-factor:5
-        f1-score:88%
+        over-factor:10, under-factor:10
+        f1-score:89%
 
 
 """
