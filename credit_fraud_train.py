@@ -165,20 +165,18 @@ if __name__=='__main__':
 
     x_train, t_train, x_val, t_val = prep.prepare_data(2, True, 1, 2, 80, 80, 'smote')
 
-    train = Train(x_train, t_train, x_val, t_val)
-    t_pred, t_pred_prob = train.random_forest(9,50)
+    model = Train(x_train, t_train, x_val, t_val)
+    t_pred, t_pred_prob = model.random_forest(9,50)
 
     eval = Eval(t_val, t_pred, t_pred_prob)
     print(f'{Counter(t_val)}')
-    print(eval.report_())
-    precision,recall,threshold = eval.calc_pc_()
-    # print(f'Precision {len(prc)}')
-    # print(f'Recall {len(rec)}')
-    # print(f'length Threshold {len(thr)}')
-    b_thr, prc, rec = eval.best_threshall(precision, recall, threshold, 'recall', None, 0.85) # 0.030375007558363296 0.6521739130434783 0.85
-    # b_thr, prc, rec = eval.best_threshall(precision, recall, threshold, 'recall', None, 0.80) # 0.4399483624518632 1.0 0.8
-    print(b_thr, prc, rec)
+    # print(eval.report_())
 
+    precision,recall,threshold = eval.calc_pc_()
+    b_thr, prc, rec = eval.best_threshall(precision, recall, threshold, 'recall', None, 0.89) 
+    print(b_thr, prc, rec)
+    # save_model(model, b_thr, 'Random_Forest')
+    # visualize_pr(precision, recall, threshold)
     
 
 

@@ -50,6 +50,14 @@ def save_model(model, threshold, model_save_name):
     with open(os.path.join(root_dir, 'model.pkl'), 'wb') as file:
         pickle.dump(model_dict, file)
 
+def load_model():
+    with open("model.pkl", 'rb') as f:
+        loaded_dict = pickle.load(f)
+    model = load_model['model']
+    threshold = load_model['threshold']
+    model_name = load_model['model_name']
+    return model, threshold, model_name
+
 if __name__=='__main__':
     df= load_df('data/split/train.csv')
     df,x,t=load_x_t(df)
