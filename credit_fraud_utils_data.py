@@ -75,15 +75,16 @@ class Sampling():
     def under_over_sample(self, under_factor=2, over_factor=20, strategy='smote', k_neig=3):
         counter = Counter(self.t)
         majority_factor = counter[0]
+        minority_factor = counter[1]
 
         if strategy == 'random':
             os = RandomOverSampler(random_state=RANDOM_STATE, sampling_strategy={1: majority_factor / over_factor})
         else:
             os = SMOTE(random_state=RANDOM_STATE,
-                        sampling_strategy={1: int(majority_factor / over_factor)},
+                        sampling_strategy={1: int(minority_factor*over_factor)},
                         k_neighbors=k_neig)
 
-        rus = RandomUnderSampler(sampling_strategy={0: int(majority_factor / under_factor)})
+        rus = RandomUnderSampler(sampling_strategy={0: int(majority_factor /under_factor)})
 
         pip = Pipeline(steps=[('over', os), ('under', rus)])
         uox, uot = pip.fit_resample(self.x, self.t)

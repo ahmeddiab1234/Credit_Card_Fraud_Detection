@@ -120,8 +120,7 @@ class Train():
         return t_pred, t_pred_prob
     
     def cat_boast(self, iterations=100, depth=5, lr=0.1):
-        model = CatBoostClassifier(iterations=iterations, depth=depth, 
-                learning_rate=lr, random_state=RANDOM_STATE, class_weight={0:ZERO_CLASS_WEIGHT, 1:ONE_CLASS_WEIGHT})
+        model = CatBoostClassifier(iterations=iterations, depth=depth, learning_rate=lr, random_state=RANDOM_STATE, class_weights={0:ZERO_CLASS_WEIGHT, 1:ONE_CLASS_WEIGHT})
         model.fit(self.x_train, self.t_train)
         t_pred = model.predict(self.x_val)
         t_pred_prob = model.predict_proba(self.x_val)
@@ -154,7 +153,6 @@ class Eval():
 
 if __name__=='__main__':
     prep = Prepare()
-    x_train, t_train, x_val, t_val = prep.prepare_data(1, True, 1)
     # print(x_train.shape) # (17648, 30)
     # print(t_train.shape) # (17648,)
     # print(x_val.shape) # (4412, 30)
@@ -164,18 +162,21 @@ if __name__=='__main__':
 
     # cnt = 2
     
-    for depth in [3,5,10]:
-        # for iteration: 
-            train = Train(x_train, t_train, x_val, t_val)
-            t_pred, t_pred_prob = train.cat_boast(depth=depth)
+    for ov_fac,un_fac in zip([5, 40, 80, 100],[5, 40, 80, 100]):
+        x_train, t_train, x_val, t_val = prep.prepare_data(2, True, 1, 3, ov_fac, un_fac, 'smote')
 
-            eval = Eval(t_val, t_pred, t_pred_prob)
-            print(f'depth {depth}')
-            print(eval.report_())
-            # print(eval.eval_metrices_())
+        train = Train(x_train, t_train, x_val, t_val)
+        # t_pred, t_pred_prob = train.logistic_regression('sag', True, 10000)
+        # t_pred, t_pred_prob = train.random_forest(9, 50)
+        # t_pred, t_pred_prob = train.xgboost(3, 100, 0.2)
+        t_pred, t_pred_prob = train.light_boast(500, 0.05, 3)
+        # t_pred, t_pred_prob = train.cat_boast(100, 3, 0.1)
 
-    pass
-
+        eval = Eval(t_val, t_pred, t_pred_prob)
+        print(f'Oversample factor {ov_fac}, Undersample factor {un_fac}')
+        print(f'0:{Counter(t_val)}')
+        print(eval.report_())
+        # print(eval.eval_metrices_())
 
 
 """
@@ -197,6 +198,72 @@ data as it is :
         f1-score: 79%
 
     cat-boost:
-        depth: 
+        depth: 3, iterations: 100, lr=0.1
+        f1-score: 88%
+------------------------------------------------------------------------------------------------
+Over sampling Minority:
+    Logistic-regression: 
+        over-factor:80
+        f1-score: 89%
+
+    random-forest:
+        over-factor:80
+        f1-score:89%
+
+    xgboost:
+        over-factor:80
+        f1-score:88%
+
+    light-boost:
+        over-factor:80
+        f1-score:85%
+
+    cat-boost:
+        over-factor:80
+        f1-score:80%
+------------------------------------------------------------------------------------------------
+
+Under sampling Majority:
+    Logistic-regression: 
+        over-factor:5
+        f1-score: 80%
+
+    random-forest:
+        over-factor:80
+        f1-score:88
+    
+    xgboost:
+        over-factor:40
+        f1-score:88%
+
+    light-boost:
+        over-factor:100
+        f1-score:84%
+
+    cat-boost:
+        over-factor:40
+        f1-score:80%
+------------------------------------------------------------------------------------------------
+Under sampling Majority:
+    Logistic-regression: 
+        over-factor:5, under-factor:5
+        f1-score: 94%
+
+    random-forest:
+        over-factor:100, under-factor:100
+        f1-score:90%
+
+    xgboost:
+        over-factor:80, under-factor: 80
+        f1-score:90%
+
+    light-boost:
+        over-factor:80, under-factor:80
+        f1-score:84%
+
+    cat-boost:
+        over-factor:5, under-factor:5
+        f1-score:88%
+
 
 """
