@@ -95,13 +95,16 @@ Under sampling Majority:
 """
 
 """
+
+test random forest
+
               precision    recall  f1-score   support
 
            0       1.00      1.00      1.00     56812
-           1       0.68      0.84      0.75        96
+           1       0.78      0.82      0.80        96
 
     accuracy                           1.00     56908
-   macro avg       0.84      0.92      0.88     56908
+   macro avg       0.89      0.91      0.90     56908
 weighted avg       1.00      1.00      1.00     56908
 
 """

@@ -38,8 +38,8 @@ ONE_CLASS_WEIGHT = 1
 
 
 class Prepare():
-    def __init__(self):
-        self.df = load_df(TRAIN_PATH)
+    def __init__(self, path=TRAIN_VAL_PATH):
+        self.df = load_df(path)
 
     def prepare_data(self, data_choice=1, is_scaling=True, scaler_op=1, sample_op=1, ov_sample_factor=20, un_sample_factor=20, over_strategy='smote'):
         preprocess = Processing_Pipeline()
@@ -154,34 +154,18 @@ class Eval():
 if __name__=='__main__':
     prep = Prepare()
 
-    x_train, t_train, x_val, t_val = prep.prepare_data(2, False, 1, 2, 80, 80, 'smote')
+    x_train, t_train, x_val, t_val = prep.prepare_data(2, True, 1, 2, 80, 80, 'smote')
 
     train = Train(x_train, t_train, x_val, t_val)
     model, t_pred, t_pred_prob = train.random_forest(9,50)
 
     eval = Eval(t_val, t_pred, t_pred_prob)
-    # print(eval.report_())
+    print(eval.report_())
 
-    test_df = load_df(VAL_PATH)
-    preprocess = Processing_Pipeline()
-    test_df_preprocessed = preprocess.apply_preprocessing(test_df, True, False)
-    test_df_preprocessed, x_test,t_test = load_x_t(test_df_preprocessed)
+    precision,recall,threshold = eval.calc_pc_()
+    b_thr, prc, rec = eval.best_threshall(precision, recall, threshold, 'recall', None, 0.89) 
+    print(b_thr, prc, rec)
 
-    # x_test,t_test = preprocess.apply_scaling(x, t, None, None, 1, False)
-    
-    t_pred = model.predict(x_test)
-    t_pred_prob = model.predict_proba(x_test)[:,1]
-
-    eval_test = Metrices(t_test, t_pred, t_pred_prob)
-    report = eval_test.report()
-    print(report)
-
-    # precision,recall,threshold = eval.calc_pc_()
-    # b_thr, prc, rec = eval.best_threshall(precision, recall, threshold, 'recall', None, 0.89) 
-    # print(b_thr, prc, rec)
-
-    # model = RandomForestClassifier(n_estimators=50, max_depth=9)
-    # model.fit(x_train, t_train)
-    # save_model(model, b_thr, 'Random_Forest')
+    save_model(model, b_thr, 'Random_Forest')
     
 

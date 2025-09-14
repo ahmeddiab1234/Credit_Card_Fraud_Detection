@@ -56,6 +56,23 @@ def load_model():
 
     return loaded_dict['model'], loaded_dict['threshold'], loaded_dict['model_name']
 
+def save_model_val(model, threshold, model_save_name):
+    model_dict = {
+        "model_val": model,
+        "threshold": threshold,
+        "model_name": model_save_name
+    }
+    root_dir = os.getcwd()
+
+    with open(os.path.join(root_dir, 'model_val.pkl'), 'wb') as file:
+        pickle.dump(model_dict, file)
+
+def load_model_val():
+    with open("model_val.pkl", 'rb') as f:
+        loaded_dict = pickle.load(f)
+
+    return loaded_dict['model_val'], loaded_dict['threshold'], loaded_dict['model_name']
+
 if __name__=='__main__':
     df= load_df('data/split/train.csv')
     df,x,t=load_x_t(df)
