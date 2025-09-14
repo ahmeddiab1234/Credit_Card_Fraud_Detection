@@ -5,3 +5,4 @@
 tcl/
 tcl*/ 
 *.tcl
+logging.txt

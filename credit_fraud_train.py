@@ -39,7 +39,7 @@ ONE_CLASS_WEIGHT = 1
 
 class Prepare():
     def __init__(self):
-        self.df = load_df(TRAIN_VAL_PATH)
+        self.df = load_df(TRAIN_PATH)
 
     def prepare_data(self, data_choice=1, is_scaling=True, scaler_op=1, sample_op=1, ov_sample_factor=20, un_sample_factor=20, over_strategy='smote'):
         preprocess = Processing_Pipeline()
@@ -82,7 +82,7 @@ class Train():
         t_pred = model.predict(self.x_val)
         t_pred_prob = model.predict_proba(self.x_val)[:,1]
 
-        return t_pred, t_pred_prob
+        return model, t_pred, t_pred_prob
 
     def random_forest(self, max_depth=5, n_estimators=25):
         model = RandomForestClassifier(max_depth=max_depth, n_estimators=n_estimators, class_weight={0:ZERO_CLASS_WEIGHT, 1:ONE_CLASS_WEIGHT})
@@ -90,7 +90,7 @@ class Train():
         t_pred = model.predict(self.x_val)
         t_pred_prob = model.predict_proba(self.x_val)[:,1]
         
-        return t_pred, t_pred_prob
+        return model, t_pred, t_pred_prob
 
     def voting_classifier(self, solver='sag', fit_intercept=True, max_iter=10000, max_depth=5,n_estimators=25):
         log_reg = LogisticRegression(solver=solver, fit_intercept=fit_intercept, max_iter=max_iter, class_weight={0:ZERO_CLASS_WEIGHT, 1:ONE_CLASS_WEIGHT})
@@ -101,7 +101,7 @@ class Train():
         )
         voting.fit(self.x_train, self.t_train)
         t_pred = voting.predict(self.x_val)
-        return t_pred, None
+        return voting, t_pred, None
     
     def xgboost(self, max_depth=5, n_estimators=100, lr=0.01):
         model = XGBClassifier(n_estimators=n_estimators, max_depth=max_depth, learning_rate=lr, 
@@ -109,7 +109,7 @@ class Train():
         model.fit(self.x_train, self.t_train)
         t_pred = model.predict(self.x_val)
         t_pred_prob = model.predict_proba(self.x_val)[:,1]
-        return t_pred, t_pred_prob
+        return model, t_pred, t_pred_prob
     
     def light_boast(self, n_estimators=100, lr=0.1, max_depth=-1):
         model = LGBMClassifier(n_estimators=n_estimators, max_depth=max_depth, 
@@ -117,14 +117,14 @@ class Train():
         model.fit(self.x_train, self.t_train)
         t_pred = model.predict(self.x_val)
         t_pred_prob = model.predict_proba(self.x_val)[:,1]
-        return t_pred, t_pred_prob
+        return model, t_pred, t_pred_prob
     
     def cat_boast(self, iterations=100, depth=5, lr=0.1):
         model = CatBoostClassifier(iterations=iterations, depth=depth, learning_rate=lr, random_state=RANDOM_STATE, class_weights={0:ZERO_CLASS_WEIGHT, 1:ONE_CLASS_WEIGHT})
         model.fit(self.x_train, self.t_train)
         t_pred = model.predict(self.x_val)
         t_pred_prob = model.predict_proba(self.x_val)[:,1]
-        return t_pred, t_pred_prob
+        return model, t_pred, t_pred_prob
 
 
 class Eval():
@@ -154,20 +154,34 @@ class Eval():
 if __name__=='__main__':
     prep = Prepare()
 
-    x_train, t_train, x_val, t_val = prep.prepare_data(2, True, 1, 2, 80, 80, 'smote')
+    x_train, t_train, x_val, t_val = prep.prepare_data(2, False, 1, 2, 80, 80, 'smote')
 
     train = Train(x_train, t_train, x_val, t_val)
-    t_pred, t_pred_prob = train.random_forest(9,50)
+    model, t_pred, t_pred_prob = train.random_forest(9,50)
 
     eval = Eval(t_val, t_pred, t_pred_prob)
-    print(eval.report_())
+    # print(eval.report_())
 
-    precision,recall,threshold = eval.calc_pc_()
-    b_thr, prc, rec = eval.best_threshall(precision, recall, threshold, 'recall', None, 0.89) 
-    print(b_thr, prc, rec)
+    test_df = load_df(VAL_PATH)
+    preprocess = Processing_Pipeline()
+    test_df_preprocessed = preprocess.apply_preprocessing(test_df, True, False)
+    test_df_preprocessed, x_test,t_test = load_x_t(test_df_preprocessed)
 
-    model = RandomForestClassifier(n_estimators=50, max_depth=9)
-    model.fit(x_train, t_train)
-    save_model(model, b_thr, 'Random_Forest')
+    # x_test,t_test = preprocess.apply_scaling(x, t, None, None, 1, False)
+    
+    t_pred = model.predict(x_test)
+    t_pred_prob = model.predict_proba(x_test)[:,1]
+
+    eval_test = Metrices(t_test, t_pred, t_pred_prob)
+    report = eval_test.report()
+    print(report)
+
+    # precision,recall,threshold = eval.calc_pc_()
+    # b_thr, prc, rec = eval.best_threshall(precision, recall, threshold, 'recall', None, 0.89) 
+    # print(b_thr, prc, rec)
+
+    # model = RandomForestClassifier(n_estimators=50, max_depth=9)
+    # model.fit(x_train, t_train)
+    # save_model(model, b_thr, 'Random_Forest')
     
 
