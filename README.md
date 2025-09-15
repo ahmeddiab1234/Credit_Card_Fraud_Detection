@@ -107,63 +107,91 @@ dataset:
   val_path : 'data/split/val.csv'
   train_val_path: 'data/split/trainval.csv'
   test_path: 'data/split/test.csv'
+  zero_weight: 1
+  one_weight: 1
+  target_rec: 0.9
+  target_prc: 0.9
+  eval_target: 'recall'
 
 
 preprocessing:
-  remove_dublicates: True
-  remove_outlier: False
-  change_time: True
-  data_choice: 2
-  is_scaling: True
-  scaler_option: 1
-  sample_option: 2
-  over_factor: 80
-  under_factor: 80
-  over_strategy: 'smote'
+    data_choice: 2 
+    is_scaling: True
+    scaler_option: 1
+    sample_option: 2
+    over_factor: 80
+    under_factor: 80
+    over_strategy: 'smote'
+    k_neig: 3
+    remove_dublicates: True
+    remove_outlier: False
+    change_time: True
+    train_val: True
+
+
 
 
 model:
-  type: "RandomForest"
 
   random_forest_params:
-    n_estimators: 50
-    max_depth: 9
-  
+    params: 
+      n_estimators: 50
+      max_depth: 9
+      random_state : 42
+
   logistic_regression:
-    fit_intercept: True
-    random_state : 42
-    solver: 'sag'
-    max_iter: 10000
+    params:
+      fit_intercept: True
+      solver: 'sag'
+      max_iter: 10000
+      random_state : 42
 
   voting_classifier:
-    fit_intercept: True
-    max_iter: 10000
-    max_depth: 9
-    n_estimators: 50
+    params:
+      model1:
+        solver: 'sag'
+        fit_intercept: True
+        max_iter: 10000
+        random_state : 42
+
+      model2:
+        max_depth: 9
+        n_estimators: 50
+        random_state : 42
+      voting: 'hard'
+      
 
   xgboost:
-    max_depth: 3
-    lr: 0.2
-    n_estimators: 100
+    params:
+      max_depth: 3
+      lr: 0.2
+      n_estimators: 100
+      random_state : 42
 
   light_boost:
-    n_estimators: 500
-    lr: 0.05
-    max_depth: 3
+    params:
+      n_estimators: 500
+      lr: 0.05
+      max_depth: 3
+      random_state : 42
 
   cat_boost:
-    depth: 3
-    iterations: 100
-    lr: 0.1
+    params:
+      depth: 3
+      iterations: 100
+      lr: 0.1
+      random_state : 42
 
   knn:
-    n_neighbours: 60
-    apply_pca: True
-    apply_kmeans: False
-    n_components: 4
-    neg_samples: 405
+    params:
+      n_neighbours: 60
+      apply_pca: False
+      apply_kmeans: False
+      n_components: 4
+      neg_samples: 405
+
 ```
-if you want to change the model just change model/type
+if you want to change the model just change model/type in `credit_fraud_train` file
 
 ## Results
 | Model              | F1-score (data as it is) | F1-score (undersampling) | F1-score (oversampling) |
