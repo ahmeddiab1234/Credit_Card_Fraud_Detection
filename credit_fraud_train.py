@@ -28,15 +28,15 @@ class Prepare():
     def __init__(self, path=TRAIN_VAL_PATH):
         self.df = load_df(path)
 
-    def prepare_data(self):
+    def prepare_data(self, preprocess_values=preprocess_values):
         preprocess = Processing_Pipeline()
-        self.df_transformed = preprocess.apply_preprocessing(self.df, preprocess_values['remove_dublicates'], preprocess_values['remove_outlier'], preprocess_values['change_time'])
+        self.df_transformed = preprocess.apply_preprocessing(self.df)
         self.df, self.x, self.t = load_x_t(self.df_transformed)
         self.x_train, self.x_val, self.t_train, self.t_val = split_data(self.x, self.t, 0.2)
 
         self.x_train_scaled,self.t_train_scaled, self.x_val_scaled, self.t_val_scaled = \
                 preprocess.apply_scaling(self.x_train, 
-                self.t_train, self.x_val, self.t_val, preprocess_values['scaler_option'])
+                self.t_train, self.x_val, self.t_val, True)
 
 
         if preprocess_values['data_choice']==1:
@@ -47,10 +47,10 @@ class Prepare():
             
         else:
             self.x_train_sampled, self.t_train_sampled = preprocess.apply_sampling(
-                        self.x_train_scaled, self.t_train_scaled, preprocess_values['sample_option'], preprocess_values['under_factor'], preprocess_values['over_factor'], preprocess_values['over_strategy'])
+                        self.x_train_scaled, self.t_train_scaled)
             
             self.x_val_sampled, self.t_val_sampled = preprocess.apply_sampling(
-                        self.x_val_scaled, self.t_val_scaled, preprocess_values['sample_option'], preprocess_values['under_factor'], preprocess_values['over_factor'], preprocess_values['over_strategy'])
+                        self.x_val_scaled, self.t_val_scaled)
             
             return self.x_train_sampled, self.t_train_sampled, self.x_val_sampled, self.t_val_sampled
 
@@ -140,12 +140,8 @@ class Eval():
         return self.metrics.clac_eval_metrices()
     
     def best_threshall(self, precision, recall, threshall):
-        target = config['dataset']['eval_target']
-        target_pr = config['dataset']['target_prc']
-        target_re = config['dataset']['target_rec']
-
         return Metrices.best_thresall(self, 
-                precision, recall, threshall, target=target, target_precision=target_pr, target_recall=target_re)
+                precision, recall, threshall)
     
     def calc_pc_(self):
         return self.metrics.calc_pc()
@@ -179,7 +175,7 @@ if __name__=='__main__':
     print(eval.report_())
 
     precision,recall,threshold = eval.calc_pc_()
-    b_thr, prc, rec = eval.best_threshall(precision, recall, threshold, 'recall', None, 0.89) 
+    b_thr, prc, rec = eval.best_threshall(precision, recall, threshold) 
     print(b_thr, prc, rec)
 
     # save_model(model, b_thr, 'Random_Forest')

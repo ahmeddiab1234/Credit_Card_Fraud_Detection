@@ -23,7 +23,7 @@ preprocess_values = config['preprocessing']
 
 
 def try_kmeans(x_train, t_train):
-   neg_samples = config['knn']['params']['neg_samples']
+   neg_samples = config['model']['knn']['params']['neg_samples']
    
    x_train_pos = x_train[t_train==1]
    t_train_pos = t_train[t_train==1]
@@ -48,7 +48,7 @@ class KNNClassifier():
       self.t_val = t_val
 
    def apply_knn(self, x_train, t_train, x_val):
-      n_neighbours = config['knn']['params']['n_neighbours']
+      n_neighbours = config['model']['knn']['params']['n_neighbours']
       knn = KNeighborsClassifier(n_neighbors=n_neighbours)
       model = knn.fit(x_train, t_train)
       start = time.time()
@@ -58,11 +58,10 @@ class KNNClassifier():
       return model, t_pred, t_pred_prob, time_pred
    
    def train(self):
-      n_neighbours = config['knn']['params']['n_neighbours']
-      apply_pca = config['knn']['params']['apply_pca']
-      apply_kmeans = config['knn']['params']['apply_kmeans']
-      n_components = config['knn']['params']['n_components']
-      neg_samples = config['knn']['params']['neg_samples']
+      apply_pca = config['model']['knn']['params']['apply_pca']
+      apply_kmeans = config['model']['knn']['params']['apply_kmeans']
+      n_components = config['model']['knn']['params']['n_components']
+      neg_samples = config['model']['knn']['params']['neg_samples']
 
       x_train,t_train, x_val= self.x_train, self.t_train, self.x_val
       
@@ -74,34 +73,18 @@ class KNNClassifier():
       elif apply_kmeans:
          x_train, t_train = try_kmeans(x_train, t_train,neg_samples=neg_samples)
 
-      model, t_pred, t_pred_prob, time_pred = self.apply_knn(x_train, t_train, x_val, n_neighbours=n_neighbours)
+      model, t_pred, t_pred_prob, time_pred = self.apply_knn(x_train, t_train, x_val)
    
       return model, pca, t_pred, t_pred_prob, time_pred
 
    def evaluation(self, t_pred, t_pred_prob,):
-      target = config['dataset']['eval_target']
-      target_pr = config['dataset']['target_prc']
-      target_re = config['dataset']['target_rec']
       best_rec = config['dataset']
       eval = Metrices(self.t_val, t_pred, t_pred_prob)
 
       report = eval.report()
       prc, rec, thr = eval.calc_pc()
-      best_prc, best_rec, best_thr = eval.best_thresall(prc, rec, thr, target=target, target_precision=target_pr, target_recall=target_re)
+      best_prc, best_rec, best_thr = eval.best_thresall(prc, rec, thr)
       return report, best_prc, best_rec, best_thr
 
 
-if __name__ == '__main__':
-
-   prep = Prepare(TRAIN_VAL_PATH)
-   x_train, t_train, x_val, t_val = prep.prepare_data(2, True, 1, 2, 80, 80, 'smote')
-
-   knn = KNNClassifier(x_train, t_train, x_val, t_val)
-   model, pca, t_pred, t_pred_prob, time_pred = knn.train(n_neighbours=60, apply_pca=False, n_components=4)
-   report, prc, rec, thr = knn.evaluation(t_pred, t_pred_prob)
-
-   print(report)
-   print(f'Time Taken for Preiction {time_pred}')
-   print(prc, rec, thr)
-#  save_model_knn((model,pca), thr, 'KNN_test')
 

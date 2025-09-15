@@ -7,20 +7,26 @@ from collections import Counter
 from imblearn.under_sampling import RandomUnderSampler
 from imblearn.over_sampling import SMOTE, RandomOverSampler 
 from imblearn.pipeline import Pipeline
+from utils.helper_fun import load_config
 
-RANDOM_STATE=42
+config = load_config()
+process_config = config['preprocessing']
+
+RANDOM_STATE = config['random_state']
 
 
 class Preprocessing:
     def __init__(self, df: pd.DataFrame):
         self.df=df
 
-    def remove_duplicates(self, drop=True):
+    def remove_duplicates(self):
+        drop = process_config['remove_dublicates']
         if drop:
             self.df.drop_duplicates(inplace=True)
         return self.df
 
-    def handle_outliers(self, drop=True):
+    def handle_outliers(self):
+        drop = process_config['remove_outlier']
         cols = self.df.columns[:-1]
         for col in cols:
             q1 = self.df[col].quantile(0.25)
@@ -47,7 +53,8 @@ class Sampling():
         self.x=x
         self.t=t
 
-    def under_sampling(self, factor=50):
+    def under_sampling(self):
+        factor = process_config['under_factor']
         counter = Counter(self.t)
         minority_count = counter[1]
         majority_count = counter[0]
@@ -60,7 +67,10 @@ class Sampling():
         return ux, ut
 
 
-    def over_sample(self, factor=50, strategy='smote', k_neig=3):
+    def over_sample(self):
+        factor = process_config['over_factor']
+        strategy = process_config['over_strategy']
+        k_neig = process_config['k_neig']
         counter = Counter(self.t)
         majority_factor = counter[0]
         if strategy == 'random':
@@ -72,7 +82,13 @@ class Sampling():
         ox, ot = os.fit_resample(self.x, self.t)
         return ox, ot
 
-    def under_over_sample(self, under_factor=2, over_factor=20, strategy='smote', k_neig=3):
+    def under_over_sample(self):
+        over_factor = process_config['over_factor']
+        under_factor = process_config['under_factor']
+        strategy = process_config['over_strategy']
+        k_neig = process_config['k_neig']
+        
+        
         counter = Counter(self.t)
         majority_factor = counter[0]
         minority_factor = counter[1]
@@ -95,7 +111,8 @@ class Processing_Pipeline():
     def __init__(self):
         pass
 
-    def scaling(self, x, option=1):
+    def scaling(self, x):
+        option = process_config['scaler_option']
         if option == 1:
             scaler = MinMaxScaler()
         elif option == 2:
@@ -108,34 +125,40 @@ class Processing_Pipeline():
         x = scaler.fit_transform(x)
         return scaler, x
 
-    def apply_preprocessing(self, df:pd.DataFrame, remove_dublicate=True, remove_outlier=True, change_time=True):
+    def apply_preprocessing(self, df:pd.DataFrame):
+        remove_dublicate = process_config['remove_dublicates']
+        remove_outlier = process_config['remove_outlier']
+        change_time = process_config['change_time']
+
         preprocessing = Preprocessing(df)
         if remove_dublicate:
             df=preprocessing.remove_duplicates()
         if remove_outlier:
-            df = preprocessing.handle_outliers(True)
+            df = preprocessing.handle_outliers()
         if change_time:
             df = preprocessing.change_time_to_hours('Time')
 
         return df
 
-    def apply_sampling(self, x,t, sample_option=1, under_factor=20, over_factor=20, over_strategy='smote'):
+    def apply_sampling(self, x,t):
+        sample_option = process_config['sample_option']
         sampling = Sampling(x,t)
         
         if sample_option==1:
-            x,t = sampling.under_sampling(under_factor)
+            x,t = sampling.under_sampling()
         elif sample_option==2:
-            x,t = sampling.over_sample(over_factor)
+            x,t = sampling.over_sample()
         else:
-            x,t = sampling.under_over_sample(under_factor, over_factor,over_strategy)
+            x,t = sampling.under_over_sample()
         return x,t
 
-    def apply_scaling(self, x_train:pd.DataFrame, t_train:pd.Series, x_val=None, t_val=None, scaling_option=1, train_val=True):
+    def apply_scaling(self, x_train:pd.DataFrame, t_train:pd.Series, x_val=None, t_val=None, train_val=True):
+        scaling_option = process_config['scaler_option']
         if train_val:
-            scaler, x_trian_transformed = self.scaling(x_train, scaling_option)
+            scaler, x_trian_transformed = self.scaling(x_train)
             x_val_transformed = scaler.transform(x_val)
             return x_trian_transformed, t_train, x_val_transformed, t_val
         else:
-            _,x_tranformed = self.scaling(x_train,scaling_option)
+            _,x_tranformed = self.scaling(x_train)
             return x_tranformed, t_train
 
