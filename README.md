@@ -186,11 +186,12 @@ Results:
 `Val_f1-score: f1-score 89% & Recall 81%`
 
 <p>
-  <img src='../outputs/train_random_forest.png'>
+  <img src='outputs/train_random_forest.png' width='400'>
 </p>
+
 `Test: f1-score 80% & Recall 82%`
 <p>
-  <img src='../outputs/test_random_forest.png'>
+  <img src='outputs/test_random_forest.png' width='400'>
 </p>
 
 <h2>
@@ -204,12 +205,14 @@ reduces the f1-score form 88% to 85% so we will choose without PCA.
 We tunning to get the best ***n-neighbor 60, n_component 4***
 Results:
 `Train_Val: f1-score 88% & Recall 79%`
+
 <p>
-  <img src='outputs/train_knn.png'>
+  <img src='outputs/train_knn.png' width='400'>
 </p>
+
 `Test: f1-score 75% & Recall 75%`
 <p>
-  <img src='outputs/test_knn.png'>
+  <img src='outputs/test_knn.png' width='400'>
 </p>
 
 
