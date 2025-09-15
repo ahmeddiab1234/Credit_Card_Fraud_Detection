@@ -1,20 +1,3 @@
-"""
-1 - try data as it is 
-2 - oversameple , undersample, over&under sample
-
-try:
-    - Logistic regression and tune hyperparamters
-    - random forest classifier
-    - voting classifier
-    - xgboost, light boost, cat boost
-
-pkl file
-    - model
-    - threshall
-    - model name
-
-"""
-
 
 from utils.helper_fun import *
 from credit_fraud_utils_data import Processing_Pipeline
@@ -32,7 +15,6 @@ RANDOM_STATE = 42
 TRAIN_PATH = 'data/split/train.csv'
 VAL_PATH = 'data/split/val.csv'
 TRAIN_VAL_PATH = 'data/split/trainval.csv'
-# ZERO_CLASS_WEIGHT = 0.8 # 0.9, 1
 ZERO_CLASS_WEIGHT = 1 # 0.9, 1
 ONE_CLASS_WEIGHT = 1
 
@@ -166,6 +148,6 @@ if __name__=='__main__':
     b_thr, prc, rec = eval.best_threshall(precision, recall, threshold, 'recall', None, 0.89) 
     print(b_thr, prc, rec)
 
-    save_model(model, b_thr, 'Random_Forest')
+    # save_model(model, b_thr, 'Random_Forest')
     
 

@@ -1,9 +1,3 @@
-"""
-load test data
-apply prparing data
-load pickle file 
-test the data 
-"""
 
 from credit_fraud_utils_data import Processing_Pipeline 
 from utils.helper_fun import *
