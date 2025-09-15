@@ -11,16 +11,20 @@ from utils.helper_fun import *
 from credit_fraud_utils_eval import Metrices
 from credit_fraud_train import Prepare
 
-RANDOM_STATE = 42
-TRAIN_PATH = 'data/split/train.csv'
-VAL_PATH = 'data/split/val.csv'
-TRAIN_VAL_PATH = 'data/split/trainval.csv'
-ZERO_CLASS_WEIGHT = 1 # 0.9, 1
-ONE_CLASS_WEIGHT = 1
+config = load_config()
+
+RANDOM_STATE = config['random_state']
+TRAIN_PATH = config['dataset']['train_path']
+VAL_PATH = config['dataset']['val_path']
+TRAIN_VAL_PATH = config['dataset']['train_val_path']
+ZERO_CLASS_WEIGHT = config['dataset']['zero_weight']
+ONE_CLASS_WEIGHT = config['dataset']['one_weight']
+preprocess_values = config['preprocessing']
 
 
-
-def try_kmeans(x_train, t_train, neg_samples=400):
+def try_kmeans(x_train, t_train):
+   neg_samples = config['knn']['params']['neg_samples']
+   
    x_train_pos = x_train[t_train==1]
    t_train_pos = t_train[t_train==1]
    x_train_neg = x_train[t_train==0]
@@ -43,7 +47,8 @@ class KNNClassifier():
       self.x_val = x_val
       self.t_val = t_val
 
-   def apply_knn(self, x_train, t_train, x_val, n_neighbours=100):
+   def apply_knn(self, x_train, t_train, x_val):
+      n_neighbours = config['knn']['params']['n_neighbours']
       knn = KNeighborsClassifier(n_neighbors=n_neighbours)
       model = knn.fit(x_train, t_train)
       start = time.time()
@@ -52,7 +57,13 @@ class KNNClassifier():
       t_pred_prob = model.predict_proba(x_val)[:,1]
       return model, t_pred, t_pred_prob, time_pred
    
-   def train(self, n_neighbours=100, apply_pca=False, apply_kmeans=False, n_components=10, neg_samples=400):
+   def train(self):
+      n_neighbours = config['knn']['params']['n_neighbours']
+      apply_pca = config['knn']['params']['apply_pca']
+      apply_kmeans = config['knn']['params']['apply_kmeans']
+      n_components = config['knn']['params']['n_components']
+      neg_samples = config['knn']['params']['neg_samples']
+
       x_train,t_train, x_val= self.x_train, self.t_train, self.x_val
       
       pca=None
@@ -67,12 +78,16 @@ class KNNClassifier():
    
       return model, pca, t_pred, t_pred_prob, time_pred
 
-   def evaluation(self, t_pred, t_pred_prob, best_rec=0.9):
+   def evaluation(self, t_pred, t_pred_prob,):
+      target = config['dataset']['eval_target']
+      target_pr = config['dataset']['target_prc']
+      target_re = config['dataset']['target_rec']
+      best_rec = config['dataset']
       eval = Metrices(self.t_val, t_pred, t_pred_prob)
 
       report = eval.report()
       prc, rec, thr = eval.calc_pc()
-      best_prc, best_rec, best_thr = eval.best_thresall(prc, rec, thr)
+      best_prc, best_rec, best_thr = eval.best_thresall(prc, rec, thr, target=target, target_precision=target_pr, target_recall=target_re)
       return report, best_prc, best_rec, best_thr
 
 

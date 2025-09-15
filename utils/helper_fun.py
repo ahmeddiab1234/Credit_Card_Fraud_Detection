@@ -4,6 +4,7 @@ import pandas as pd
 import os
 import sys
 import pickle
+import yaml
 
 import matplotlib
 matplotlib.use("Qt5Agg") 
@@ -74,6 +75,12 @@ def load_model_knn():
         loaded_dict = pickle.load(f)
 
     return loaded_dict['model_knn'], loaded_dict['threshold'], loaded_dict['model_name']
+
+
+def load_config():
+    with open('config.yaml', 'r') as file:
+        config = yaml.safe_load(file)
+    return config
 
 
 if __name__=='__main__':

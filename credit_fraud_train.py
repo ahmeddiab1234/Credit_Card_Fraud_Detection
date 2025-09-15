@@ -11,41 +11,46 @@ import lightgbm as lgb
 from lightgbm import LGBMClassifier
 from catboost import CatBoostClassifier
 
-RANDOM_STATE = 42
-TRAIN_PATH = 'data/split/train.csv'
-VAL_PATH = 'data/split/val.csv'
-TRAIN_VAL_PATH = 'data/split/trainval.csv'
-ZERO_CLASS_WEIGHT = 1 # 0.9, 1
-ONE_CLASS_WEIGHT = 1
+
+config = load_config()
+
+RANDOM_STATE = config['random_state']
+TRAIN_PATH = config['dataset']['train_path']
+VAL_PATH = config['dataset']['val_path']
+TRAIN_VAL_PATH = config['dataset']['train_val_path']
+ZERO_CLASS_WEIGHT = config['dataset']['zero_weight']
+ONE_CLASS_WEIGHT = config['dataset']['one_weight']
+preprocess_values = config['preprocessing']
+
 
 
 class Prepare():
     def __init__(self, path=TRAIN_VAL_PATH):
         self.df = load_df(path)
 
-    def prepare_data(self, data_choice=1, is_scaling=True, scaler_op=1, sample_op=1, ov_sample_factor=20, un_sample_factor=20, over_strategy='smote'):
+    def prepare_data(self):
         preprocess = Processing_Pipeline()
-        self.df_transformed = preprocess.apply_preprocessing(self.df, True, False)
+        self.df_transformed = preprocess.apply_preprocessing(self.df, preprocess_values['remove_dublicates'], preprocess_values['remove_outlier'], preprocess_values['change_time'])
         self.df, self.x, self.t = load_x_t(self.df_transformed)
         self.x_train, self.x_val, self.t_train, self.t_val = split_data(self.x, self.t, 0.2)
 
         self.x_train_scaled,self.t_train_scaled, self.x_val_scaled, self.t_val_scaled = \
                 preprocess.apply_scaling(self.x_train, 
-                self.t_train, self.x_val, self.t_val, scaler_op)
+                self.t_train, self.x_val, self.t_val, preprocess_values['scaler_option'])
 
 
-        if data_choice==1:
-            if is_scaling:
+        if preprocess_values['data_choice']==1:
+            if preprocess_values['is_scaling']:
                 return self.x_train_scaled, self.t_train_scaled, self.x_val_scaled, self.t_val_scaled
             else:
                 return self.x_train, self.t_train, self.x_val, self.t_val
             
         else:
             self.x_train_sampled, self.t_train_sampled = preprocess.apply_sampling(
-                        self.x_train_scaled, self.t_train_scaled, sample_op, un_sample_factor, ov_sample_factor, over_strategy)
+                        self.x_train_scaled, self.t_train_scaled, preprocess_values['sample_option'], preprocess_values['under_factor'], preprocess_values['over_factor'], preprocess_values['over_strategy'])
             
             self.x_val_sampled, self.t_val_sampled = preprocess.apply_sampling(
-                        self.x_val_scaled, self.t_val_scaled, sample_op, un_sample_factor, ov_sample_factor, over_strategy)
+                        self.x_val_scaled, self.t_val_scaled, preprocess_values['sample_option'], preprocess_values['under_factor'], preprocess_values['over_factor'], preprocess_values['over_strategy'])
             
             return self.x_train_sampled, self.t_train_sampled, self.x_val_sampled, self.t_val_sampled
 
@@ -58,51 +63,63 @@ class Train():
         self.t_train = t_train
         self.t_val = t_val
 
-    def logistic_regression(self, solver='sag', fit_intercept=True, max_iter=10000):
-        model = LogisticRegression(solver=solver, fit_intercept=fit_intercept, max_iter=max_iter, class_weight={0:ZERO_CLASS_WEIGHT, 1:ONE_CLASS_WEIGHT})
+    def logistic_regression(self):
+        model_name = 'logistic_regression'
+        params = config['model'][model_name]['params']
+        model = LogisticRegression(**params)
         model.fit(self.x_train, self.t_train)
         t_pred = model.predict(self.x_val)
         t_pred_prob = model.predict_proba(self.x_val)[:,1]
 
         return model, t_pred, t_pred_prob
 
-    def random_forest(self, max_depth=5, n_estimators=25):
-        model = RandomForestClassifier(max_depth=max_depth, n_estimators=n_estimators, class_weight={0:ZERO_CLASS_WEIGHT, 1:ONE_CLASS_WEIGHT})
+    def random_forest(self):
+        model_name = 'random_forest_params'
+        params = config['model'][model_name]['params']
+        model = RandomForestClassifier(**params)
         model.fit(self.x_train, self.t_train)
         t_pred = model.predict(self.x_val)
         t_pred_prob = model.predict_proba(self.x_val)[:,1]
         
         return model, t_pred, t_pred_prob
 
-    def voting_classifier(self, solver='sag', fit_intercept=True, max_iter=10000, max_depth=5,n_estimators=25):
-        log_reg = LogisticRegression(solver=solver, fit_intercept=fit_intercept, max_iter=max_iter, class_weight={0:ZERO_CLASS_WEIGHT, 1:ONE_CLASS_WEIGHT})
-        ran_for = RandomForestClassifier(max_depth=max_depth, n_estimators=n_estimators, class_weight={0:ZERO_CLASS_WEIGHT, 1:ONE_CLASS_WEIGHT})
+    def voting_classifier(self):
+        model_name = 'voting_classifier'
+        params1 = config['model'][model_name]['params']['model1']
+        params2 = config['model'][model_name]['params']['model2']
+        voting_type = config[model_name]['params']['voting']
+        log_reg = LogisticRegression(**params1)
+        ran_for = RandomForestClassifier(**params2)
         voting = VotingClassifier(
             estimators=[('lr',log_reg), ('ran', ran_for)],
-            voting='hard'
+            voting=voting_type
         )
         voting.fit(self.x_train, self.t_train)
         t_pred = voting.predict(self.x_val)
         return voting, t_pred, None
     
-    def xgboost(self, max_depth=5, n_estimators=100, lr=0.01):
-        model = XGBClassifier(n_estimators=n_estimators, max_depth=max_depth, learning_rate=lr, 
-                random_state=RANDOM_STATE, class_weight={0:ZERO_CLASS_WEIGHT, 1:ONE_CLASS_WEIGHT})
+    def xgboost(self):
+        model_name = 'xgboost'
+        params = config['model'][model_name]['params']
+        model = XGBClassifier(**params)
         model.fit(self.x_train, self.t_train)
         t_pred = model.predict(self.x_val)
         t_pred_prob = model.predict_proba(self.x_val)[:,1]
         return model, t_pred, t_pred_prob
     
-    def light_boast(self, n_estimators=100, lr=0.1, max_depth=-1):
-        model = LGBMClassifier(n_estimators=n_estimators, max_depth=max_depth, 
-                learning_rate=lr, random_state=RANDOM_STATE, class_weight={0:ZERO_CLASS_WEIGHT, 1:ONE_CLASS_WEIGHT})
+    def light_boast(self):
+        model_name = 'light_boost'
+        params = config['model'][model_name]['params']
+        model = LGBMClassifier(**params)
         model.fit(self.x_train, self.t_train)
         t_pred = model.predict(self.x_val)
         t_pred_prob = model.predict_proba(self.x_val)[:,1]
         return model, t_pred, t_pred_prob
     
-    def cat_boast(self, iterations=100, depth=5, lr=0.1):
-        model = CatBoostClassifier(iterations=iterations, depth=depth, learning_rate=lr, random_state=RANDOM_STATE, class_weights={0:ZERO_CLASS_WEIGHT, 1:ONE_CLASS_WEIGHT})
+    def cat_boast(self):
+        model_name = 'cat_boost'
+        params = config['model'][model_name]['params']
+        model = CatBoostClassifier(**params)
         model.fit(self.x_train, self.t_train)
         t_pred = model.predict(self.x_val)
         t_pred_prob = model.predict_proba(self.x_val)[:,1]
@@ -122,7 +139,11 @@ class Eval():
     def eval_metrices_(self):
         return self.metrics.clac_eval_metrices()
     
-    def best_threshall(self, precision, recall, threshall, target='precision', target_pr=0.9, target_re=0.9):
+    def best_threshall(self, precision, recall, threshall):
+        target = config['dataset']['eval_target']
+        target_pr = config['dataset']['target_prc']
+        target_re = config['dataset']['target_rec']
+
         return Metrices.best_thresall(self, 
                 precision, recall, threshall, target=target, target_precision=target_pr, target_recall=target_re)
     
@@ -136,10 +157,23 @@ class Eval():
 if __name__=='__main__':
     prep = Prepare()
 
-    x_train, t_train, x_val, t_val = prep.prepare_data(2, True, 1, 2, 80, 80, 'smote')
+    x_train, t_train, x_val, t_val = prep.prepare_data()
 
     train = Train(x_train, t_train, x_val, t_val)
-    model, t_pred, t_pred_prob = train.random_forest(9,50)
+    model_name = 'RandomForest'
+    
+    if model_name=='RandomForest':
+        model, t_pred, t_pred_prob = train.random_forest()
+    elif model_name=='LogisticRegression':
+        model, t_pred, t_pred_prob = train.logistic_regression()
+    if model_name=='VotingClassifier':
+        model, t_pred, t_pred_prob = train.voting_classifier()
+    elif model_name=='XgBoost':
+        model, t_pred, t_pred_prob = train.xgboost()
+    elif model_name=='LightBoost':
+        model, t_pred, t_pred_prob = train.light_boast()
+    elif model_name=='CatBoost':
+        model, t_pred, t_pred_prob = train.cat_boast()
 
     eval = Eval(t_val, t_pred, t_pred_prob)
     print(eval.report_())

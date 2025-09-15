@@ -9,7 +9,8 @@ tcl*/
 __pycache__
 catboost_info/
 *catboost_info
-logging.txt
+*logging.txt
+/logging.txt
 eval.py
 *eval.py
 Try_KNN/eval_knn.py
