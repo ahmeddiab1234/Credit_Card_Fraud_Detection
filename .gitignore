@@ -6,7 +6,7 @@ tcl/
 tcl*/ 
 *.tcl
 *__pycache__
-__pycache__/
+__pycache__
 catboost_info/
 *catboost_info
 logging.txt
