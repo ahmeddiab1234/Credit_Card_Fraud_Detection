@@ -1,6 +1,6 @@
 # Credit Card Fraud Detection  
 <p>
-  <img src='utils/diagrams/eda.png' style="width:900px; height:500px">
+  <img src='utils/diagrams/ream_me_image.png' style="width:900px; height:500px">
 </p>
 
 <h3>
