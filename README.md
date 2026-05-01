@@ -357,8 +357,5 @@ The backend provides a RESTful API for real-time fraud detection.
 
 
 
-Author: ***[Ahmed Diab](https://www.linkedin.com/in/ahmed-diab-3b0631245/)***
-
-
 
 
