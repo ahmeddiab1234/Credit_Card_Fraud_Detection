@@ -4,6 +4,9 @@ from credit_fraud_utils_data import Processing_Pipeline
 from credit_fraud_utils_eval import Metrices
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier, VotingClassifier
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.svm import SVC
+from sklearn.naive_bayes import GaussianNB
 from collections import Counter
 import xgboost as xgb
 from xgboost import XGBClassifier
@@ -34,16 +37,16 @@ class Prepare():
         self.df, self.x, self.t = load_x_t(self.df_transformed)
         self.x_train, self.x_val, self.t_train, self.t_val = split_data(self.x, self.t, 0.2)
 
-        self.x_train_scaled,self.t_train_scaled, self.x_val_scaled, self.t_val_scaled = \
+        self.scaler, self.x_train_scaled,self.t_train_scaled, self.x_val_scaled, self.t_val_scaled = \
                 preprocess.apply_scaling(self.x_train, 
                 self.t_train, self.x_val, self.t_val, True)
 
 
         if preprocess_values['data_choice']==1:
             if preprocess_values['is_scaling']:
-                return self.x_train_scaled, self.t_train_scaled, self.x_val_scaled, self.t_val_scaled
+                return self.x_train_scaled, self.t_train_scaled, self.x_val_scaled, self.t_val_scaled, self.scaler
             else:
-                return self.x_train, self.t_train, self.x_val, self.t_val
+                return self.x_train, self.t_train, self.x_val, self.t_val, None
             
         else:
             self.x_train_sampled, self.t_train_sampled = preprocess.apply_sampling(
@@ -52,7 +55,7 @@ class Prepare():
             self.x_val_sampled, self.t_val_sampled = preprocess.apply_sampling(
                         self.x_val_scaled, self.t_val_scaled)
             
-            return self.x_train_sampled, self.t_train_sampled, self.x_val_sampled, self.t_val_sampled
+            return self.x_train_sampled, self.t_train_sampled, self.x_val_sampled, self.t_val_sampled, self.scaler
 
 
 
@@ -125,6 +128,42 @@ class Train():
         t_pred_prob = model.predict_proba(self.x_val)[:,1]
         return model, t_pred, t_pred_prob
 
+    def decision_tree(self):
+        model_name = 'decision_tree'
+        params = config['model'][model_name]['params']
+        model = DecisionTreeClassifier(**params)
+        model.fit(self.x_train, self.t_train)
+        t_pred = model.predict(self.x_val)
+        t_pred_prob = model.predict_proba(self.x_val)[:,1]
+        return model, t_pred, t_pred_prob
+
+    def svm_linear(self):
+        model_name = 'svm'
+        params = config['model'][model_name]['params']
+        model = SVC(**params)
+        model.fit(self.x_train, self.t_train)
+        t_pred = model.predict(self.x_val)
+        t_pred_prob = model.predict_proba(self.x_val)[:,1]
+        return model, t_pred, t_pred_prob
+
+    def svm_kernel(self):
+        model_name = 'kernel_svm'
+        params = config['model'][model_name]['params']
+        model = SVC(**params)
+        model.fit(self.x_train, self.t_train)
+        t_pred = model.predict(self.x_val)
+        t_pred_prob = model.predict_proba(self.x_val)[:,1]
+        return model, t_pred, t_pred_prob
+
+    def naive_bayes(self):
+        model_name = 'naive_bayes'
+        params = config['model'][model_name]['params']
+        model = GaussianNB(**params)
+        model.fit(self.x_train, self.t_train)
+        t_pred = model.predict(self.x_val)
+        t_pred_prob = model.predict_proba(self.x_val)[:,1]
+        return model, t_pred, t_pred_prob
+
 
 class Eval():
     def __init__(self, t_val, t_pred, t_pred_prop=None):
@@ -153,16 +192,16 @@ class Eval():
 if __name__=='__main__':
     prep = Prepare()
 
-    x_train, t_train, x_val, t_val = prep.prepare_data()
+    x_train, t_train, x_val, t_val, scaler = prep.prepare_data()
 
     train = Train(x_train, t_train, x_val, t_val)
-    model_name = 'RandomForest'
+    model_name = 'NaiveBayes'
     
     if model_name=='RandomForest':
         model, t_pred, t_pred_prob = train.random_forest()
     elif model_name=='LogisticRegression':
         model, t_pred, t_pred_prob = train.logistic_regression()
-    if model_name=='VotingClassifier':
+    elif model_name=='VotingClassifier':
         model, t_pred, t_pred_prob = train.voting_classifier()
     elif model_name=='XgBoost':
         model, t_pred, t_pred_prob = train.xgboost()
@@ -170,14 +209,23 @@ if __name__=='__main__':
         model, t_pred, t_pred_prob = train.light_boast()
     elif model_name=='CatBoost':
         model, t_pred, t_pred_prob = train.cat_boast()
+    elif model_name=='DecisionTree':
+        model, t_pred, t_pred_prob = train.decision_tree()
+    elif model_name=='SVM':
+        model, t_pred, t_pred_prob = train.svm_linear()
+    elif model_name=='KernelSVM':
+        model, t_pred, t_pred_prob = train.svm_kernel()
+    elif model_name=='NaiveBayes':
+        model, t_pred, t_pred_prob = train.naive_bayes()
 
     eval = Eval(t_val, t_pred, t_pred_prob)
     print(eval.report_())
 
     precision,recall,threshold = eval.calc_pc_()
     b_thr, prc, rec = eval.best_threshall(precision, recall, threshold) 
-    print(b_thr, prc, rec)
+    print(f"Best Threshold: {b_thr}, Precision: {prc}, Recall: {rec}")
 
-    # save_model(model, b_thr, 'Random_Forest')
+    # save_model(model, b_thr, model_name, scaler)
+    # print(f"Model {model_name} saved successfully!")
     
 

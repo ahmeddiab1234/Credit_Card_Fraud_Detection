@@ -4,14 +4,7 @@
 </p>
 
 <h3>
-  This project credit card fraud detection aims to able to classify the fraud  
-transactions in by given 31 features and 56960 examples but there are 28  
-feature are anonymous, also the data is highly unbalanced with just 0.172%  
-positive class ration, so we focuses on F1-score then recall, and try several  
-algorithms (logistic regression, random forest, voting classifier, xgboost, lightboost, cat-boost) we reach for the highest f1-score from random forest with  
-[Val_f1score: 89% and Test_f1score: 80%], after applying preprocessing remove  
-duplicates, transform time, apply MinMaxScaling, apply Ovesampling with factor:  
-80
+  This project for credit card fraud detection aims to classify fraud transactions using 31 features across 284,807 examples. The data is highly unbalanced (0.172% positive class), so we focus on F1-score and Recall. After trying several algorithms (Logistic Regression, Random Forest, XGBoost, LightGBM, CatBoost, Decision Tree, SVM, Kernel SVM, and Naive Bayes), we achieved the highest F1-score of 89% with Random Forest, SVM, and Kernel SVM using oversampling.
 
 </h3>
 
@@ -25,7 +18,9 @@ duplicates, transform time, apply MinMaxScaling, apply Ovesampling with factor:
 
 This project inspired from Kaggle competition: [Kaggle Fraud Detection](https://www.kaggle.com/datasets/mlg-ulb/creditcardfraud/code?datasetId=310&sortBy=voteCount&searchQuery=tsne).  
 ```
-CREDIT_CARD_FRAUD_DETECTION/
+│── backend/                    
+│   ├── main.py                 # FastAPI application
+│
 │── data/                       
 │   └── split/                 
 │       ├── train.csv
@@ -42,6 +37,7 @@ CREDIT_CARD_FRAUD_DETECTION/
 │   └── __pycache__/           
 │
 │── utils/                    
+│   ├── helper_fun.py
 │
 │── venv/                     
 │
@@ -65,6 +61,7 @@ CREDIT_CARD_FRAUD_DETECTION/
 │
 │── requirments.txt          
 │── test.py           
+│── test_api.py                 # API test script
 ```
 
 ## Initialization & Setup
@@ -96,6 +93,13 @@ run testing: ```python test.py --config config.yaml```
 or if you want to using k-means:
 run training-validation:  ```python Try_KNN\knn_model_train.py --config config.yaml```
 run testing: ```python Try_KNN\test_knn.py --config config.yaml```
+
+### 5- Running Backend (FastAPI)
+To start the fraud detection API:
+```bash
+uvicorn backend.main:app --reload
+```
+Access interactive documentation at: `http://127.0.0.1:8000/docs`
 
 
 ## Configuration
@@ -174,6 +178,10 @@ if you want to change the model just change model/type
 | LightGBM            | 79%                      | 84%                      | 83%                      |
 | CatBoost            | 88%                      | 80%                      | 89%                      |
 | KNN                 | 56%                      | 62%                      | 88%                      |
+| Decision Tree       | -                        | -                        | 84%                      |
+| SVM                 | -                        | -                        | 89%                      |
+| Kernel SVM          | -                        | -                        | 89%                      |
+| Naive Bayes         | -                        | -                        | 46%                      |
 
 
 <h2>
@@ -214,6 +222,110 @@ Results:
 <p>
   <img src='outputs/test_knn.png' width='400'>
 </p>
+
+
+<h2>
+  Decision Tree:
+</h2>
+
+Results:
+`Val_f1-score: 84% & Recall 75%`
+
+<h2>
+  SVM:
+</h2>
+
+Results:
+`Val_f1-score: 89% & Recall 81%`
+`Best Threshold: 0.0030, Precision: 0.3768, Recall: 0.9`
+
+<h2>
+  Kernel SVM:
+</h2>
+
+Results:
+`Val_f1-score: 89% & Recall 81%`
+`Best Threshold: 0.0022, Precision: 0.0441, Recall: 0.9`
+
+<h2>
+  Naive Bayes:
+</h2>
+
+Results:
+`Val_f1-score: 46% & Recall 81%`
+`Best Threshold: 1.43e-09, Precision: 0.1526, Recall: 0.9`
+
+
+## FastAPI Backend Documentation
+
+The backend provides a RESTful API for real-time fraud detection.
+
+### 1. Predict Single/Multiple Transactions
+**Endpoint:** `POST /predict`
+
+**Input Example (JSON):**
+```json
+{
+  "Time": 168239.0,
+  "V1": -0.01437659,
+  "V2": 0.98471741,
+  "V3": -0.75409588,
+  "V4": -0.10457889,
+  "V5": 0.85529521,
+  "V6": -0.90063147,
+  "V7": 1.16906120,
+  "V8": -0.12214994,
+  "V9": -0.32458167,
+  "V10": -1.63691535,
+  "V11": 1.38135580,
+  "V12": 0.47525145,
+  "V13": -0.07675981,
+  "V14": -2.61993077,
+  "V15": -1.53783787,
+  "V16": 0.46389858,
+  "V17": 1.73371224,
+  "V18": 1.10918967,
+  "V19": -0.29836004,
+  "V20": 0.02270194,
+  "V21": 0.15420594,
+  "V22": 0.61171807,
+  "V23": -0.18690965,
+  "V24": -0.12177678,
+  "V25": -0.07013771,
+  "V26": 0.62936032,
+  "V27": 0.02185044,
+  "V28": 0.07728146,
+  "Amount": 58.31
+}
+```
+
+**Output Example:**
+```json
+[
+  {
+    "prediction": "Normal",
+    "is_fraud": false,
+    "probability": 0.0027874030745543084
+  }
+]
+```
+
+### 2. Batch Prediction (CSV)
+**Endpoint:** `POST /predict_csv`
+
+**Input:** A CSV file with the same features as the training data (Time, V1-V28, Amount).
+
+**Output Example:**
+```json
+[
+  {
+    "index": 0,
+    "prediction": "Normal",
+    "is_fraud": false,
+    "probability": 0.0027874030745543084
+  }
+]
+```
 
 
 

@@ -40,11 +40,12 @@ def visualize_pr(precision, recall, threshall, versus_threshall=True):
             plt.ylabel('Recall')
         plt.show()
 
-def save_model(model, threshold, model_save_name):
+def save_model(model, threshold, model_save_name, scaler=None):
     model_dict = {
         "model": model,
         "threshold": threshold,
-        "model_name": model_save_name
+        "model_name": model_save_name,
+        "scaler": scaler
     }
     root_dir = os.getcwd()
 
@@ -55,7 +56,7 @@ def load_model():
     with open("model.pkl", 'rb') as f:
         loaded_dict = pickle.load(f)
 
-    return loaded_dict['model'], loaded_dict['threshold'], loaded_dict['model_name']
+    return loaded_dict['model'], loaded_dict['threshold'], loaded_dict['model_name'], loaded_dict.get('scaler')
 
 
 def save_model_knn(model, threshold, model_save_name):

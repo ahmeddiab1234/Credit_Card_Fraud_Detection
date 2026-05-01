@@ -87,3 +87,23 @@ model:
       apply_kmeans: False
       n_components: 4
       neg_samples: 405
+
+  decision_tree:
+    params:
+      max_depth: 10
+      random_state: 42
+
+  svm:
+    params:
+      kernel: 'linear'
+      probability: True
+      random_state: 42
+
+  kernel_svm:
+    params:
+      kernel: 'rbf'
+      probability: True
+      random_state: 42
+
+  naive_bayes:
+    params: {}

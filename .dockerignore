@@ -1,0 +1,30 @@
+# Ignore Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Ignore virtual environment
+venv/
+env/
+.env
+
+# Ignore large data files and archives
+data/
+*.zip
+*.rar
+*.7z
+
+# Ignore Git
+.git/
+.gitignore
+
+# Ignore IDE settings
+.vscode/
+.idea/
+
+# Ignore local logs
+logging.txt
+*.log

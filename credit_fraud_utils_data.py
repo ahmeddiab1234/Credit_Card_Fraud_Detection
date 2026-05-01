@@ -157,8 +157,13 @@ class Processing_Pipeline():
         if train_val:
             scaler, x_trian_transformed = self.scaling(x_train)
             x_val_transformed = scaler.transform(x_val)
-            return x_trian_transformed, t_train, x_val_transformed, t_val
+            return scaler, x_trian_transformed, t_train, x_val_transformed, t_val
         else:
-            _,x_tranformed = self.scaling(x_train)
-            return x_tranformed, t_train
+            scaler, x_tranformed = self.scaling(x_train)
+            return scaler, x_tranformed, t_train
+
+    def inference_scaling(self, x, scaler):
+        if scaler is not None:
+            return scaler.transform(x)
+        return x
 
